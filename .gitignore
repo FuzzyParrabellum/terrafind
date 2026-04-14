@@ -1,5 +1,10 @@
 **EXTENDED_README
 
+# Node / frontend
+node_modules/
+dist/
+.env.local
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
