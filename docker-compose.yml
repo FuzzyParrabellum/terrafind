@@ -24,6 +24,22 @@ services:
     depends_on:
       - postgres
     
+  front:
+    build:
+      context: ./frontend
+      target: builder
+    container_name: tf_react
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /app/src
+        - action: rebuild
+          path: ./frontend/package.json
+
   postgres:
     container_name: tf_postgres
     image: postgres:latest
