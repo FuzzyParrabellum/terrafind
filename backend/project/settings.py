@@ -27,6 +27,8 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
 LOCAL_APPS = [
     'appsfolio.users',
+    'appsfolio.place',
+    'appsfolio.transaction',
 ]
 
 WAGTAIL_APPS = []
