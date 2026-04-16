@@ -22,8 +22,9 @@ def vente(commune):
         date_mutation="2024-03-12",
         nature_mutation=VenteParcelle.NatureMutation.VENTE,
         valeur_fonciere=Decimal("387000.00"),
-        type_local=VenteParcelle.TypeLocal.APPARTEMENT,
-        surface_reelle_bati=42,
+        types_locaux=[VenteParcelle.TypeLocal.APPARTEMENT],
+        surface_bien_principal=42,
+        surface_totale=42,
         nombre_pieces_principales=2,
     )
 
@@ -54,6 +55,23 @@ class TestVenteParcelleModel:
     def test_valeur_fonciere_is_decimal(self, vente):
         assert isinstance(vente.valeur_fonciere, Decimal)
 
+    def test_types_locaux_stores_list(self, vente):
+        assert isinstance(vente.types_locaux, list)
+        assert VenteParcelle.TypeLocal.APPARTEMENT in vente.types_locaux
+
+    def test_types_locaux_can_hold_multiple_types(self, commune):
+        vente = VenteParcelle.objects.create(
+            commune=commune,
+            code_postal="56000",
+            date_mutation="2024-01-01",
+            nature_mutation=VenteParcelle.NatureMutation.VENTE,
+            valeur_fonciere=Decimal("500000.00"),
+            types_locaux=[VenteParcelle.TypeLocal.MAISON, VenteParcelle.TypeLocal.DEPENDANCE],
+            surface_bien_principal=118,
+            surface_totale=133,
+        )
+        assert len(vente.types_locaux) == 2
+
     def test_optional_fields_can_be_null(self, commune):
         vente = VenteParcelle.objects.create(
             commune=commune,
@@ -62,7 +80,8 @@ class TestVenteParcelleModel:
             nature_mutation=VenteParcelle.NatureMutation.VENTE,
             valeur_fonciere=Decimal("50000.00"),
         )
-        assert vente.surface_reelle_bati is None
+        assert vente.surface_bien_principal is None
+        assert vente.surface_totale is None
         assert vente.nombre_pieces_principales is None
         assert vente.surface_terrain is None
 
