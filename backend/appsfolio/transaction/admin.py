@@ -10,12 +10,13 @@ class VenteParcelleAdmin(admin.ModelAdmin):
         "code_postal",
         "date_mutation",
         "nature_mutation",
-        "type_local",
+        "types_locaux",
         "valeur_fonciere",
-        "surface_reelle_bati",
+        "surface_bien_principal",
+        "surface_totale",
         "nombre_pieces_principales",
     )
-    list_filter = ("nature_mutation", "type_local", "nature_culture", "commune")
+    list_filter = ("nature_mutation", "nature_culture", "commune")
     search_fields = ("commune__nom", "commune__code_insee", "code_postal")
     ordering = ("-date_mutation",)
     readonly_fields = ("public_id",)
