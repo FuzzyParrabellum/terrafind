@@ -34,7 +34,9 @@ LOCAL_APPS = [
 
 WAGTAIL_APPS = []
 
-THIRD_PARTY_APPS = []
+THIRD_PARTY_APPS = [
+    'rest_framework',
+]
 
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -148,3 +150,23 @@ STATICFILES_FINDERS = [
 ]
 
 AUTH_USER_MODEL = 'users.User'
+
+# Django REST Framework
+# https://www.django-rest-framework.org/api-guide/settings/
+REST_FRAMEWORK = {
+    # En production, seules les requêtes GET sont autorisées sans authentification.
+    # Les autres méthodes (POST, PUT, DELETE) nécessitent d'être authentifié.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    # Pagination par défaut : 20 résultats par page.
+    # Le frontend peut demander une autre page avec ?page=2
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    # Toutes les réponses sont en JSON.
+    # BrowsableAPIRenderer fournit une interface HTML navigable à /api/ pour
+    # tester manuellement les endpoints — uniquement activé si DEBUG=True.
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ] + (['rest_framework.renderers.BrowsableAPIRenderer'] if DEBUG else []),
+}
