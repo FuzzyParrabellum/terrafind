@@ -29,6 +29,7 @@ LOCAL_APPS = [
     'appsfolio.users',
     'appsfolio.place',
     'appsfolio.transaction',
+    'appsfolio.core',
 ]
 
 WAGTAIL_APPS = []
@@ -42,6 +43,7 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
 ]
 
 INSTALLED_APPS = LOCAL_APPS + WAGTAIL_APPS + THIRD_PARTY_APPS + DJANGO_APPS

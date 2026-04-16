@@ -9,6 +9,9 @@ dependencies = [
     "django-environ>=0.13.0",
     "djangorestframework>=3.17.1",
     "psycopg2-binary>=2.9.11",
+    "duckdb>=1.2.2",
+    "numpy>=2.0.0",
+    "pandas>=3.0.2",
 ]
 
 [dependency-groups]
