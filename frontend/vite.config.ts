@@ -10,4 +10,15 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      // Toute requête commençant par /api/ est redirigée vers Django.
+      // En dev Docker : le service s'appelle "back" sur le réseau interne.
+      // En dev local sans Docker : changer la cible en http://localhost:8000
+      '/api': {
+        target: process.env.API_PROXY_TARGET ?? 'http://back:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })
