@@ -27,3 +27,26 @@ class VenteParcelleSerializer(serializers.ModelSerializer):
         ]
         # public_id est en lecture seule : généré automatiquement, jamais écrit par l'API
         read_only_fields = ["public_id"]
+
+
+class StatsByAnneeSerializer(serializers.Serializer):
+    """Statistiques agrégées pour une année donnée."""
+
+    annee = serializers.IntegerField()
+    nb_ventes = serializers.IntegerField()
+    prix_median = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True)
+    surface_moyenne = serializers.FloatField(allow_null=True)
+
+
+class StatsSerializer(serializers.Serializer):
+    """
+    Statistiques globales sur un ensemble de ventes.
+
+    Retournées par GET /api/ventes/stats/.
+    Filtrage optionnel : ?commune=<code_insee>
+    """
+
+    total_ventes = serializers.IntegerField()
+    prix_median = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True)
+    surface_moyenne = serializers.FloatField(allow_null=True)
+    par_annee = StatsByAnneeSerializer(many=True)

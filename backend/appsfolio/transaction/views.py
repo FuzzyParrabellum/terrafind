@@ -1,7 +1,12 @@
+from django.db.models import Avg, Count
+from django.db.models.functions import ExtractYear
 from rest_framework import viewsets, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
+from .aggregates import Median
 from .models import VenteParcelle
-from .serializers import VenteParcelleSerializer
+from .serializers import VenteParcelleSerializer, StatsSerializer
 
 
 class VenteParcelleViewSet(viewsets.ReadOnlyModelViewSet):
@@ -34,3 +39,48 @@ class VenteParcelleViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(code_postal=code_postal)
 
         return qs
+
+    @action(detail=False, methods=["get"], url_path="stats")
+    def stats(self, request):
+        """
+        GET /api/ventes/stats/
+
+        Retourne des statistiques agrégées sur les ventes.
+
+        Filtres optionnels :
+          ?commune=56260 → limiter aux ventes d'une commune
+        """
+        # On réutilise get_queryset() pour appliquer les mêmes filtres
+        # (?commune, ?code_postal) sans dupliquer la logique.
+        qs = self.get_queryset()
+
+        # Agrégats globaux ------------------------------------------------
+        global_agg = qs.aggregate(
+            total_ventes=Count("id"),
+            prix_median=Median("valeur_fonciere"),
+            surface_moyenne=Avg("surface_bien_principal"),
+        )
+
+        # Agrégats par année -----------------------------------------------
+        # ExtractYear annote chaque ligne avec l'année de date_mutation,
+        # puis on group by cette annotation via values("annee").
+        par_annee = (
+            qs.annotate(annee=ExtractYear("date_mutation"))
+            .values("annee")
+            .annotate(
+                nb_ventes=Count("id"),
+                prix_median=Median("valeur_fonciere"),
+                surface_moyenne=Avg("surface_bien_principal"),
+            )
+            .order_by("annee")
+        )
+
+        payload = {
+            "total_ventes": global_agg["total_ventes"],
+            "prix_median": global_agg["prix_median"],
+            "surface_moyenne": global_agg["surface_moyenne"],
+            "par_annee": list(par_annee),
+        }
+
+        serializer = StatsSerializer(payload)
+        return Response(serializer.data)

@@ -120,3 +120,87 @@ class TestVenteDetailAPI:
             reverse("venteparcelle-detail", kwargs={"public_id": uuid.uuid4()})
         )
         assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Fixtures supplémentaires pour les tests de stats
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def vente_vannes_2022(commune_vannes):
+    return VenteParcelle.objects.create(
+        commune=commune_vannes,
+        code_postal="56000",
+        date_mutation="2022-06-10",
+        nature_mutation=VenteParcelle.NatureMutation.VENTE,
+        valeur_fonciere=Decimal("300000.00"),
+        types_locaux=[VenteParcelle.TypeLocal.MAISON],
+        surface_bien_principal=90,
+        surface_totale=90,
+        nombre_pieces_principales=4,
+    )
+
+
+@pytest.fixture
+def vente_vannes_2023(commune_vannes):
+    return VenteParcelle.objects.create(
+        commune=commune_vannes,
+        code_postal="56000",
+        date_mutation="2023-09-20",
+        nature_mutation=VenteParcelle.NatureMutation.VENTE,
+        valeur_fonciere=Decimal("350000.00"),
+        types_locaux=[VenteParcelle.TypeLocal.MAISON],
+        surface_bien_principal=100,
+        surface_totale=100,
+        nombre_pieces_principales=5,
+    )
+
+
+@pytest.mark.django_db
+class TestVenteStatsAPI:
+    def test_stats_returns_200(self, client, vente_vannes):
+        response = client.get(reverse("venteparcelle-stats"))
+        assert response.status_code == 200
+
+    def test_stats_contains_expected_top_level_fields(self, client, vente_vannes):
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert "total_ventes" in data
+        assert "prix_median" in data
+        assert "surface_moyenne" in data
+        assert "par_annee" in data
+
+    def test_stats_total_ventes(self, client, vente_vannes, vente_lorient):
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert data["total_ventes"] == 2
+
+    def test_stats_par_annee_contains_expected_fields(self, client, vente_vannes):
+        data = client.get(reverse("venteparcelle-stats")).json()
+        annee = data["par_annee"][0]
+        assert "annee" in annee
+        assert "nb_ventes" in annee
+        assert "prix_median" in annee
+        assert "surface_moyenne" in annee
+
+    def test_stats_par_annee_groups_by_year(
+        self, client, vente_vannes, vente_vannes_2022, vente_vannes_2023
+    ):
+        # 3 ventes sur 3 années différentes → 3 entrées dans par_annee
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert data["total_ventes"] == 3
+        assert len(data["par_annee"]) == 3
+
+    def test_stats_filter_by_commune(self, client, vente_vannes, vente_lorient):
+        # Filtrer sur Vannes uniquement → 1 vente
+        data = client.get(
+            reverse("venteparcelle-stats"), {"commune": "56260"}
+        ).json()
+        assert data["total_ventes"] == 1
+
+    def test_stats_filter_commune_unknown_returns_zeros(self, client, vente_vannes):
+        data = client.get(
+            reverse("venteparcelle-stats"), {"commune": "99999"}
+        ).json()
+        assert data["total_ventes"] == 0
+        assert data["prix_median"] is None
+        assert data["surface_moyenne"] is None
+        assert data["par_annee"] == []
