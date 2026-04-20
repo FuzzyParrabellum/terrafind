@@ -1,4 +1,4 @@
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from django.db.models.functions import ExtractYear
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
@@ -32,11 +32,51 @@ class VenteParcelleViewSet(viewsets.ReadOnlyModelViewSet):
 
         commune = self.request.query_params.get("commune")
         if commune:
-            qs = qs.filter(commune__code_insee=commune)
+            # Q() permet un filtre OU : on accepte un code INSEE ("56260")
+            # ou un nom de commune ("Vannes"), insensible à la casse.
+            # Sans Q(), filter() enchaîné produirait un AND qui retournerait toujours 0.
+            qs = qs.filter(
+                Q(commune__code_insee=commune) |
+                Q(commune__nom__icontains=commune)
+            )
 
         code_postal = self.request.query_params.get("code_postal")
         if code_postal:
             qs = qs.filter(code_postal=code_postal)
+
+        # __contains sur ArrayField vérifie que la liste contient cette valeur.
+        # Ex : types_locaux__contains=["Maison"] filtre les ventes avec au moins une Maison.
+        type_local = self.request.query_params.get("type_local")
+        if type_local:
+            qs = qs.filter(types_locaux__contains=[type_local])
+
+        prix_min = self.request.query_params.get("prix_min")
+        if prix_min:
+            qs = qs.filter(valeur_fonciere__gte=prix_min)
+
+        prix_max = self.request.query_params.get("prix_max")
+        if prix_max:
+            qs = qs.filter(valeur_fonciere__lte=prix_max)
+
+        surface_min = self.request.query_params.get("surface_min")
+        if surface_min:
+            qs = qs.filter(surface_bien_principal__gte=surface_min)
+
+        surface_max = self.request.query_params.get("surface_max")
+        if surface_max:
+            qs = qs.filter(surface_bien_principal__lte=surface_max)
+
+        pieces_min = self.request.query_params.get("pieces_min")
+        if pieces_min:
+            qs = qs.filter(nombre_pieces_principales__gte=pieces_min)
+
+        annee_debut = self.request.query_params.get("annee_debut")
+        if annee_debut:
+            qs = qs.filter(date_mutation__year__gte=annee_debut)
+
+        annee_fin = self.request.query_params.get("annee_fin")
+        if annee_fin:
+            qs = qs.filter(date_mutation__year__lte=annee_fin)
 
         return qs
 

@@ -37,6 +37,14 @@ export interface PaginatedResponse<T> {
 export interface VenteFilters {
   commune?: string
   code_postal?: string
+  type_local?: string
+  prix_min?: number
+  prix_max?: number
+  surface_min?: number
+  surface_max?: number
+  pieces_min?: number
+  annee_debut?: number
+  annee_fin?: number
   ordering?: string
   page?: number
 }

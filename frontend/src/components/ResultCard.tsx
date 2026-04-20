@@ -17,25 +17,26 @@ const BADGE_CLASSES: Record<string, string> = {
 const BADGE_FALLBACK = 'bg-stone-100 text-stone-500'
 
 export default function ResultCard({ vente }: ResultCardProps) {
-  // Le premier type est utilisé comme étiquette principale.
-  // Les mutations avec plusieurs types sont rares mais possibles.
-  const primaryType = vente.types_locaux[0] ?? 'Inconnu'
-  const badgeClass = BADGE_CLASSES[primaryType] ?? BADGE_FALLBACK
-
   const pricePerSqm = formatPricePerSqm(vente.valeur_fonciere, vente.surface_bien_principal)
   const rooms = formatRooms(vente.nombre_pieces_principales)
+  const types = vente.types_locaux.length > 0 ? vente.types_locaux : ['Inconnu']
 
   return (
     <div className="bg-white border border-stone-100 rounded-xl px-4 py-3.5 hover:border-stone-300 transition-colors cursor-pointer">
       <div className="flex items-start justify-between mb-2.5">
         <div>
-          <p className="text-sm font-medium text-stone-800">
-            {vente.commune.nom}
-            <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full font-normal ${badgeClass}`}>
-              {primaryType}
-            </span>
-          </p>
-          <p className="text-xs text-stone-300 mt-0.5">
+          <div className="flex items-center flex-wrap gap-1.5 mb-0.5">
+            <p className="text-sm font-medium text-stone-800">{vente.commune.nom}</p>
+            {types.map(type => (
+              <span
+                key={type}
+                className={`text-[11px] px-2 py-0.5 rounded-full font-normal ${BADGE_CLASSES[type] ?? BADGE_FALLBACK}`}
+              >
+                {type}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-stone-300">
             {vente.code_postal} · vendu le {formatDate(vente.date_mutation)}
           </p>
         </div>
@@ -56,11 +57,6 @@ export default function ResultCard({ vente }: ResultCardProps) {
         {rooms && (
           <p className="text-xs text-stone-400">
             <span className="text-stone-700 font-medium">{rooms}</span>
-          </p>
-        )}
-        {vente.types_locaux.length > 1 && (
-          <p className="text-xs text-stone-300">
-            +{vente.types_locaux.length - 1} autre{vente.types_locaux.length > 2 ? 's' : ''} bien{vente.types_locaux.length > 2 ? 's' : ''}
           </p>
         )}
       </div>

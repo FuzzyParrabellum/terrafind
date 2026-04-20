@@ -38,10 +38,18 @@ export const venteService = {
    */
   list(filters: VenteFilters = {}): Promise<PaginatedResponse<VenteParcelle>> {
     const params: Record<string, string> = {}
-    if (filters.commune)    params.commune    = filters.commune
-    if (filters.code_postal) params.code_postal = filters.code_postal
-    if (filters.ordering)   params.ordering   = filters.ordering
-    if (filters.page)       params.page       = String(filters.page)
+    if (filters.commune)     params.commune      = filters.commune
+    if (filters.code_postal) params.code_postal  = filters.code_postal
+    if (filters.type_local)  params.type_local   = filters.type_local
+    if (filters.prix_min)    params.prix_min     = String(filters.prix_min)
+    if (filters.prix_max)    params.prix_max     = String(filters.prix_max)
+    if (filters.surface_min)  params.surface_min  = String(filters.surface_min)
+    if (filters.surface_max)  params.surface_max  = String(filters.surface_max)
+    if (filters.pieces_min)   params.pieces_min   = String(filters.pieces_min)
+    if (filters.annee_debut)  params.annee_debut  = String(filters.annee_debut)
+    if (filters.annee_fin)    params.annee_fin    = String(filters.annee_fin)
+    if (filters.ordering)     params.ordering     = filters.ordering
+    if (filters.page)         params.page         = String(filters.page)
     return get<PaginatedResponse<VenteParcelle>>(`${BASE}/ventes/`, params)
   },
 }
