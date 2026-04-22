@@ -204,3 +204,198 @@ class TestVenteStatsAPI:
         assert data["prix_median"] is None
         assert data["surface_moyenne"] is None
         assert data["par_annee"] == []
+
+
+# ---------------------------------------------------------------------------
+# Tests des filtres de la liste /api/ventes/
+# Chaque test vérifie un filtre isolément pour que les échecs soient précis.
+# On réutilise les fixtures déjà définies :
+#   vente_vannes      → Appartement, 42 m², 2 pièces, 387 000 €, 2024, Vannes  (56260)
+#   vente_lorient     → Maison,       85 m², 4 pièces, 220 000 €, 2024, Lorient (56121)
+#   vente_vannes_2022 → Maison,       90 m², 4 pièces, 300 000 €, 2022, Vannes  (56260)
+#   vente_vannes_2023 → Maison,      100 m², 5 pièces, 350 000 €, 2023, Vannes  (56260)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestVenteFiltersAPI:
+    # --- commune : code INSEE -----------------------------------------------
+
+    def test_filter_commune_by_code_insee_exact(self, client, vente_vannes, vente_lorient):
+        # Le code INSEE de Vannes est "56260" → seule la vente à Vannes revient.
+        response = client.get(reverse("venteparcelle-list"), {"commune": "56260"})
+        assert response.json()["count"] == 1
+        assert response.json()["results"][0]["commune"]["code_insee"] == "56260"
+
+    def test_filter_commune_by_code_insee_returns_only_matching_commune(
+        self, client, vente_vannes, vente_lorient
+    ):
+        # Vérification que le filtre code INSEE n'inclut pas d'autres communes
+        # (la logique OR avec icontains ne doit pas créer de faux positifs).
+        response = client.get(reverse("venteparcelle-list"), {"commune": "56121"})
+        assert response.json()["count"] == 1
+        assert response.json()["results"][0]["commune"]["code_insee"] == "56121"
+
+    def test_filter_commune_code_insee_unknown_returns_empty(self, client, vente_vannes):
+        response = client.get(reverse("venteparcelle-list"), {"commune": "99999"})
+        assert response.json()["count"] == 0
+
+    # --- commune : nom (icontains) ------------------------------------------
+
+    def test_filter_commune_by_name(self, client, vente_vannes, vente_lorient):
+        # Recherche par nom (icontains) → seule la vente à Vannes doit revenir.
+        response = client.get(reverse("venteparcelle-list"), {"commune": "Vannes"})
+        assert response.json()["count"] == 1
+        assert response.json()["results"][0]["commune"]["nom"] == "Vannes"
+
+    def test_filter_commune_by_name_case_insensitive(self, client, vente_vannes, vente_lorient):
+        # La correspondance est insensible à la casse grâce à icontains.
+        response = client.get(reverse("venteparcelle-list"), {"commune": "vannes"})
+        assert response.json()["count"] == 1
+
+    def test_filter_commune_by_partial_name(self, client, vente_vannes, vente_lorient):
+        # Un préfixe partiel doit fonctionner : "Lor" → Lorient.
+        response = client.get(reverse("venteparcelle-list"), {"commune": "Lor"})
+        assert response.json()["count"] == 1
+        assert response.json()["results"][0]["commune"]["nom"] == "Lorient"
+
+    def test_filter_commune_unknown_name_returns_empty(self, client, vente_vannes):
+        response = client.get(reverse("venteparcelle-list"), {"commune": "InexistantVille"})
+        assert response.json()["count"] == 0
+
+    # --- type_local ---------------------------------------------------------
+
+    def test_filter_type_local_maison(self, client, vente_vannes, vente_lorient):
+        # types_locaux est un ArrayField → le filtre __contains=["Maison"] inclut
+        # toutes les ventes dont la liste contient au moins "Maison".
+        response = client.get(reverse("venteparcelle-list"), {"type_local": "Maison"})
+        assert response.json()["count"] == 1
+        result = response.json()["results"][0]
+        assert "Maison" in result["types_locaux"]
+
+    def test_filter_type_local_appartement(self, client, vente_vannes, vente_lorient):
+        response = client.get(reverse("venteparcelle-list"), {"type_local": "Appartement"})
+        assert response.json()["count"] == 1
+        result = response.json()["results"][0]
+        assert "Appartement" in result["types_locaux"]
+
+    def test_filter_type_local_unknown_returns_empty(self, client, vente_vannes):
+        response = client.get(reverse("venteparcelle-list"), {"type_local": "TypeInexistant"})
+        assert response.json()["count"] == 0
+
+    # --- prix_min / prix_max ------------------------------------------------
+
+    def test_filter_prix_min(self, client, vente_vannes, vente_lorient):
+        # prix_min=300000 → vente_vannes (387 000 €) seulement,
+        # vente_lorient (220 000 €) est exclu.
+        response = client.get(reverse("venteparcelle-list"), {"prix_min": 300000})
+        assert response.json()["count"] == 1
+        assert float(response.json()["results"][0]["valeur_fonciere"]) >= 300000
+
+    def test_filter_prix_max(self, client, vente_vannes, vente_lorient):
+        # prix_max=250000 → vente_lorient (220 000 €) seulement.
+        response = client.get(reverse("venteparcelle-list"), {"prix_max": 250000})
+        assert response.json()["count"] == 1
+        assert float(response.json()["results"][0]["valeur_fonciere"]) <= 250000
+
+    def test_filter_prix_min_and_max(self, client, vente_vannes, vente_lorient):
+        # Fourchette [200 000, 250 000] → vente_lorient uniquement.
+        response = client.get(
+            reverse("venteparcelle-list"), {"prix_min": 200000, "prix_max": 250000}
+        )
+        assert response.json()["count"] == 1
+
+    def test_filter_prix_no_match_returns_empty(self, client, vente_vannes, vente_lorient):
+        # Fourchette impossible → 0 résultats.
+        response = client.get(
+            reverse("venteparcelle-list"), {"prix_min": 500000, "prix_max": 600000}
+        )
+        assert response.json()["count"] == 0
+
+    # --- surface_min / surface_max ------------------------------------------
+
+    def test_filter_surface_min(self, client, vente_vannes, vente_lorient):
+        # surface_min=80 → vente_lorient (85 m²) seulement,
+        # vente_vannes (42 m²) est exclu.
+        response = client.get(reverse("venteparcelle-list"), {"surface_min": 80})
+        assert response.json()["count"] == 1
+        assert float(response.json()["results"][0]["surface_bien_principal"]) >= 80
+
+    def test_filter_surface_max(self, client, vente_vannes, vente_lorient):
+        # surface_max=50 → vente_vannes (42 m²) seulement.
+        response = client.get(reverse("venteparcelle-list"), {"surface_max": 50})
+        assert response.json()["count"] == 1
+        assert float(response.json()["results"][0]["surface_bien_principal"]) <= 50
+
+    def test_filter_surface_min_and_max(self, client, vente_vannes, vente_lorient):
+        # Fourchette [40, 50] → vente_vannes (42 m²) uniquement.
+        response = client.get(
+            reverse("venteparcelle-list"), {"surface_min": 40, "surface_max": 50}
+        )
+        assert response.json()["count"] == 1
+
+    # --- pieces_min ---------------------------------------------------------
+
+    def test_filter_pieces_min(self, client, vente_vannes, vente_lorient):
+        # pieces_min=4 → vente_lorient (4 pièces), vente_vannes (2 pièces) exclu.
+        response = client.get(reverse("venteparcelle-list"), {"pieces_min": 4})
+        assert response.json()["count"] == 1
+        result = response.json()["results"][0]
+        assert result["nombre_pieces_principales"] >= 4
+
+    def test_filter_pieces_min_includes_exact_match(self, client, vente_vannes, vente_lorient):
+        # pieces_min=2 → les deux ventes (2 et 4 pièces) sont incluses.
+        response = client.get(reverse("venteparcelle-list"), {"pieces_min": 2})
+        assert response.json()["count"] == 2
+
+    # --- annee_debut / annee_fin --------------------------------------------
+
+    def test_filter_annee_debut(
+        self, client, vente_vannes, vente_lorient, vente_vannes_2022, vente_vannes_2023
+    ):
+        # annee_debut=2023 → ventes de 2023 et 2024 (vente_vannes, vente_lorient,
+        # vente_vannes_2023) ; vente_vannes_2022 est exclue.
+        response = client.get(reverse("venteparcelle-list"), {"annee_debut": 2023})
+        assert response.json()["count"] == 3
+
+    def test_filter_annee_fin(
+        self, client, vente_vannes, vente_lorient, vente_vannes_2022, vente_vannes_2023
+    ):
+        # annee_fin=2022 → seule vente_vannes_2022 ; les ventes 2023 et 2024 exclues.
+        response = client.get(reverse("venteparcelle-list"), {"annee_fin": 2022})
+        assert response.json()["count"] == 1
+
+    def test_filter_annee_debut_and_fin(
+        self, client, vente_vannes, vente_lorient, vente_vannes_2022, vente_vannes_2023
+    ):
+        # Fourchette [2022, 2023] → vente_vannes_2022 et vente_vannes_2023 ;
+        # les deux ventes de 2024 sont exclues.
+        response = client.get(
+            reverse("venteparcelle-list"), {"annee_debut": 2022, "annee_fin": 2023}
+        )
+        assert response.json()["count"] == 2
+
+    # --- combinaisons -------------------------------------------------------
+
+    def test_filter_commune_and_type(
+        self, client, vente_vannes, vente_lorient, vente_vannes_2022
+    ):
+        # Commune=Vannes + type=Appartement → uniquement vente_vannes.
+        # vente_vannes_2022 est une Maison à Vannes, donc exclue.
+        response = client.get(
+            reverse("venteparcelle-list"),
+            {"commune": "Vannes", "type_local": "Appartement"},
+        )
+        assert response.json()["count"] == 1
+        result = response.json()["results"][0]
+        assert result["commune"]["nom"] == "Vannes"
+        assert "Appartement" in result["types_locaux"]
+
+    def test_filter_type_and_prix_max(
+        self, client, vente_vannes, vente_lorient, vente_vannes_2022, vente_vannes_2023
+    ):
+        # Maisons avec prix ≤ 310 000 € → vente_lorient (220k) et vente_vannes_2022 (300k).
+        response = client.get(
+            reverse("venteparcelle-list"),
+            {"type_local": "Maison", "prix_max": 310000},
+        )
+        assert response.json()["count"] == 2

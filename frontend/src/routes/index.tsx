@@ -23,15 +23,19 @@ export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): HomeSearch => ({
     commune:     typeof search.commune     === 'string' ? search.commune     : undefined,
     type_local:  typeof search.type_local  === 'string' ? search.type_local  : undefined,
-    prix_min:    typeof search.prix_min    === 'string' ? Number(search.prix_min)    : undefined,
-    prix_max:    typeof search.prix_max    === 'string' ? Number(search.prix_max)    : undefined,
-    surface_min: typeof search.surface_min === 'string' ? Number(search.surface_min) : undefined,
-    surface_max: typeof search.surface_max === 'string' ? Number(search.surface_max) : undefined,
-    pieces_min:  typeof search.pieces_min  === 'string' ? Number(search.pieces_min)  : undefined,
-    annee_debut: typeof search.annee_debut === 'string' ? Number(search.annee_debut) : undefined,
-    annee_fin:   typeof search.annee_fin   === 'string' ? Number(search.annee_fin)   : undefined,
+    // Pour les champs numériques, on accepte deux cas :
+    //   1. Venant de l'URL (après rechargement) : la valeur est une string → Number("150000")
+    //   2. Venant d'une navigation programmatique (applyFilters) : la valeur est déjà un number → Number(150000)
+    // On utilise `!= null && !== ''` plutôt que `typeof === 'string'` pour couvrir les deux cas.
+    prix_min:    search.prix_min    != null && search.prix_min    !== '' ? Number(search.prix_min)    : undefined,
+    prix_max:    search.prix_max    != null && search.prix_max    !== '' ? Number(search.prix_max)    : undefined,
+    surface_min: search.surface_min != null && search.surface_min !== '' ? Number(search.surface_min) : undefined,
+    surface_max: search.surface_max != null && search.surface_max !== '' ? Number(search.surface_max) : undefined,
+    pieces_min:  search.pieces_min  != null && search.pieces_min  !== '' ? Number(search.pieces_min)  : undefined,
+    annee_debut: search.annee_debut != null && search.annee_debut !== '' ? Number(search.annee_debut) : undefined,
+    annee_fin:   search.annee_fin   != null && search.annee_fin   !== '' ? Number(search.annee_fin)   : undefined,
     ordering:    typeof search.ordering    === 'string' ? search.ordering    : undefined,
-    page:        typeof search.page        === 'string' ? Number(search.page)        : undefined,
+    page:        search.page        != null && search.page        !== '' ? Number(search.page)        : undefined,
   }),
   component: HomePage,
 })
