@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSearch, useNavigate } from '@tanstack/react-router'
 import type { HomeSearch } from '../routes/index'
 
-const ANNEES = [2019, 2020, 2021, 2022, 2023, 2024, 2025]
+const ANNEES = [2021, 2022, 2023, 2024, 2025]
 
 // Le filtre Pièces n'a de sens que pour les biens habitables.
 // Terrains, dépendances et locaux commerciaux n'ont pas de pièces.

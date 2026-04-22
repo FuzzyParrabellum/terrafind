@@ -399,3 +399,93 @@ class TestVenteFiltersAPI:
             {"type_local": "Maison", "prix_max": 310000},
         )
         assert response.json()["count"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests de la pagination
+#
+# Django REST Framework utilise PageNumberPagination avec PAGE_SIZE=20.
+# On crée 21 ventes pour franchir la frontière entre la page 1 et la page 2.
+# ---------------------------------------------------------------------------
+
+PAGE_SIZE = 20  # doit correspondre à REST_FRAMEWORK['PAGE_SIZE'] dans settings.py
+
+
+@pytest.fixture
+def vingt_et_une_ventes(commune_vannes):
+    """Crée PAGE_SIZE + 1 ventes pour pouvoir tester la pagination."""
+    ventes = []
+    for i in range(PAGE_SIZE + 1):
+        ventes.append(
+            VenteParcelle.objects.create(
+                commune=commune_vannes,
+                code_postal="56000",
+                # Dates différentes pour que le tri par défaut (-date_mutation)
+                # soit déterministe et reproductible.
+                date_mutation=f"2024-{(i % 12) + 1:02d}-01",
+                nature_mutation=VenteParcelle.NatureMutation.VENTE,
+                valeur_fonciere=Decimal(f"{100000 + i * 1000}.00"),
+                types_locaux=[VenteParcelle.TypeLocal.APPARTEMENT],
+                surface_bien_principal=30 + i,
+                surface_totale=30 + i,
+                nombre_pieces_principales=2,
+            )
+        )
+    return ventes
+
+
+@pytest.mark.django_db
+class TestVentePaginationAPI:
+    def test_response_has_pagination_envelope(self, client, vente_vannes):
+        # La réponse doit toujours contenir les quatre clés de pagination DRF,
+        # même quand le résultat tient sur une seule page.
+        data = client.get(reverse("venteparcelle-list")).json()
+        assert "count"    in data
+        assert "next"     in data
+        assert "previous" in data
+        assert "results"  in data
+
+    def test_page_1_returns_page_size_items(self, client, vingt_et_une_ventes):
+        # Avec 21 ventes, la page 1 doit en contenir exactement 20.
+        data = client.get(reverse("venteparcelle-list")).json()
+        assert data["count"] == PAGE_SIZE + 1
+        assert len(data["results"]) == PAGE_SIZE
+
+    def test_page_1_has_next_and_no_previous(self, client, vingt_et_une_ventes):
+        # Sur la première page, next pointe vers la page 2 et previous est null.
+        data = client.get(reverse("venteparcelle-list")).json()
+        assert data["next"]     is not None
+        assert data["previous"] is None
+
+    def test_page_2_returns_remaining_items(self, client, vingt_et_une_ventes):
+        # La page 2 contient la seule vente restante (21 - 20 = 1).
+        data = client.get(reverse("venteparcelle-list"), {"page": 2}).json()
+        assert len(data["results"]) == 1
+
+    def test_page_2_has_previous_and_no_next(self, client, vingt_et_une_ventes):
+        # Sur la dernière page, previous pointe vers la page 1 et next est null.
+        data = client.get(reverse("venteparcelle-list"), {"page": 2}).json()
+        assert data["previous"] is not None
+        assert data["next"]     is None
+
+    def test_count_reflects_total_not_page(self, client, vingt_et_une_ventes):
+        # count doit toujours refléter le total global, peu importe la page demandée.
+        data_p1 = client.get(reverse("venteparcelle-list")).json()
+        data_p2 = client.get(reverse("venteparcelle-list"), {"page": 2}).json()
+        assert data_p1["count"] == PAGE_SIZE + 1
+        assert data_p2["count"] == PAGE_SIZE + 1
+
+    def test_invalid_page_returns_404(self, client, vingt_et_une_ventes):
+        # Demander une page qui n'existe pas doit renvoyer 404, pas une liste vide.
+        response = client.get(reverse("venteparcelle-list"), {"page": 999})
+        assert response.status_code == 404
+
+    def test_pagination_combined_with_filter(self, client, vingt_et_une_ventes, vente_lorient):
+        # S'assurer que la pagination s'applique après le filtrage, pas avant.
+        # Filtrer sur Lorient → 1 seule vente → une seule page, next=null.
+        data = client.get(
+            reverse("venteparcelle-list"), {"commune": "Lorient"}
+        ).json()
+        assert data["count"]  == 1
+        assert data["next"]   is None
+        assert len(data["results"]) == 1

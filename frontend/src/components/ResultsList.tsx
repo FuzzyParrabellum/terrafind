@@ -3,6 +3,10 @@ import { useSearch, useNavigate } from '@tanstack/react-router'
 import { useVentes } from '../hooks/useVentes'
 import ResultCard from './ResultCard'
 import Spinner from './Spinner'
+import Pagination from './Pagination'
+
+// Doit correspondre à REST_FRAMEWORK['PAGE_SIZE'] dans settings.py Django.
+const PAGE_SIZE = 20
 
 export default function ResultsList() {
   // useSearch lit les paramètres de l'URL définis dans validateSearch (routes/index.tsx).
@@ -72,6 +76,15 @@ export default function ResultsList() {
             <ResultCard key={vente.public_id} vente={vente} />
           ))}
         </div>
+      )}
+
+      {/* Widget de pagination — n'apparaît que s'il y a plus d'une page de résultats */}
+      {data && (
+        <Pagination
+          totalCount={data.count}
+          pageSize={PAGE_SIZE}
+          currentPage={search.page}
+        />
       )}
     </main>
   )
