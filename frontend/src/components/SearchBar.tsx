@@ -8,7 +8,8 @@ const TYPE_OPTIONS: { label: string; value: string }[] = [
   { label: 'Tous types',        value: '' },
   { label: 'Appartement',       value: 'Appartement' },
   { label: 'Maison',            value: 'Maison' },
-  { label: 'Terrain',           value: 'Terrain' },
+  { label: 'Dépendance',         value: 'Dépendance' },
+  // { label: 'Terrain  value: 'Terrain' },
   { label: 'Local commercial',  value: 'Local industriel. commercial ou assimilé' },
 ]
 

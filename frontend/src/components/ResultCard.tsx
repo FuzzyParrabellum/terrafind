@@ -27,12 +27,12 @@ export default function ResultCard({ vente }: ResultCardProps) {
         <div>
           <div className="flex items-center flex-wrap gap-1.5 mb-0.5">
             <p className="text-sm font-medium text-stone-800">{vente.commune.nom}</p>
-            {types.map(type => (
-              <span
-                key={type}
-                className={`text-[11px] px-2 py-0.5 rounded-full font-normal ${BADGE_CLASSES[type] ?? BADGE_FALLBACK}`}
-              >
-                {type}
+            {types.map((type, i) => (
+              <span key={type} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-[11px] text-stone-300">+</span>}
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-normal ${BADGE_CLASSES[type] ?? BADGE_FALLBACK}`}>
+                  {type}
+                </span>
               </span>
             ))}
           </div>
