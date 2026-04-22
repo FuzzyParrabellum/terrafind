@@ -489,3 +489,60 @@ class TestVentePaginationAPI:
         assert data["count"]  == 1
         assert data["next"]   is None
         assert len(data["results"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests du tri (?ordering=)
+#
+# ordering_fields autorisés dans VenteParcelleViewSet : ["date_mutation", "valeur_fonciere"]
+# Tri par défaut : ["-date_mutation"] (le plus récent en premier).
+#
+# Fixtures utilisées :
+#   vente_vannes  → 387 000 €, date 2024-03-12  (plus cher, plus récent)
+#   vente_lorient → 220 000 €, date 2024-01-15  (moins cher, plus ancien)
+#
+# L'ordre des prix et des dates est inversé : cela permet de vérifier chaque
+# tri sans ambiguïté (si les deux grandeurs allaient dans le même sens,
+# on ne saurait pas laquelle est responsable de l'ordre observé).
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestVenteOrderingAPI:
+    def test_default_ordering_is_date_descending(self, client, vente_vannes, vente_lorient):
+        # Sans paramètre ?ordering=, le tri par défaut est -date_mutation :
+        # la vente la plus récente doit apparaître en premier.
+        results = client.get(reverse("venteparcelle-list")).json()["results"]
+        assert results[0]["date_mutation"] == "2024-03-12"  # vente_vannes (mars)
+        assert results[1]["date_mutation"] == "2024-01-15"  # vente_lorient (janvier)
+
+    def test_ordering_date_ascending(self, client, vente_vannes, vente_lorient):
+        # ?ordering=date_mutation → la plus ancienne en premier.
+        results = client.get(
+            reverse("venteparcelle-list"), {"ordering": "date_mutation"}
+        ).json()["results"]
+        assert results[0]["date_mutation"] == "2024-01-15"  # vente_lorient
+        assert results[1]["date_mutation"] == "2024-03-12"  # vente_vannes
+
+    def test_ordering_price_ascending(self, client, vente_vannes, vente_lorient):
+        # ?ordering=valeur_fonciere → la moins chère en premier.
+        results = client.get(
+            reverse("venteparcelle-list"), {"ordering": "valeur_fonciere"}
+        ).json()["results"]
+        assert float(results[0]["valeur_fonciere"]) == 220000  # vente_lorient
+        assert float(results[1]["valeur_fonciere"]) == 387000  # vente_vannes
+
+    def test_ordering_price_descending(self, client, vente_vannes, vente_lorient):
+        # ?ordering=-valeur_fonciere → la plus chère en premier.
+        results = client.get(
+            reverse("venteparcelle-list"), {"ordering": "-valeur_fonciere"}
+        ).json()["results"]
+        assert float(results[0]["valeur_fonciere"]) == 387000  # vente_vannes
+        assert float(results[1]["valeur_fonciere"]) == 220000  # vente_lorient
+
+    def test_invalid_ordering_field_is_ignored(self, client, vente_vannes, vente_lorient):
+        # Un champ non autorisé dans ordering_fields doit être ignoré par DRF,
+        # qui retombe alors sur le tri par défaut. On vérifie qu'on obtient
+        # quand même un 200 avec des résultats (pas d'erreur 400).
+        response = client.get(reverse("venteparcelle-list"), {"ordering": "champ_inexistant"})
+        assert response.status_code == 200
+        assert response.json()["count"] == 2

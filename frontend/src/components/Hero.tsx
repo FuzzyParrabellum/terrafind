@@ -5,7 +5,7 @@ export default function Hero() {
         Prix de vente réels<br />des biens immobiliers en France
       </h1>
       <p className="text-sm text-stone-400 mb-7">
-        70 millions de transactions issues des données DVF officielles — de 2018 à aujourd'hui
+        70 millions de transactions issues des données DVF officielles — de 2021 à aujourd'hui
       </p>
     </section>
   )

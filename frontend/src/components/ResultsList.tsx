@@ -1,9 +1,11 @@
 import type { VenteParcelle } from '../types/api'
-import { useSearch, useNavigate } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
+
 import { useVentes } from '../hooks/useVentes'
 import ResultCard from './ResultCard'
 import Spinner from './Spinner'
 import Pagination from './Pagination'
+import SortSelect from './SortSelect'
 
 // Doit correspondre à REST_FRAMEWORK['PAGE_SIZE'] dans settings.py Django.
 const PAGE_SIZE = 20
@@ -12,7 +14,6 @@ export default function ResultsList() {
   // useSearch lit les paramètres de l'URL définis dans validateSearch (routes/index.tsx).
   // Si l'URL est /?commune=56260&prix_max=400000, search contient ces valeurs typées.
   const search = useSearch({ from: '/' })
-  const navigate = useNavigate()
 
   // On passe les filtres de l'URL directement au hook.
   // Quand l'URL change (filtres modifiés dans Sidebar), search change,
@@ -38,15 +39,7 @@ export default function ResultsList() {
           {isLoading && '…'}
           {data && `${data.count.toLocaleString('fr-FR')} résultat${data.count !== 1 ? 's' : ''}`}
         </p>
-        <select
-          value={search.ordering ?? '-date_mutation'}
-          onChange={e => navigate({ to: '/', search: prev => ({ ...prev, ordering: e.target.value, page: undefined }) })}
-          className="text-xs px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-stone-500 focus:outline-none focus:border-teal-400"
-        >
-          <option value="-date_mutation">Trier : date (récent)</option>
-          <option value="valeur_fonciere">Prix croissant</option>
-          <option value="-valeur_fonciere">Prix décroissant</option>
-        </select>
+        <SortSelect />
       </div>
 
       {isLoading && <Spinner label="Chargement…" />}
