@@ -33,6 +33,22 @@ export interface PaginatedResponse<T> {
   results: T[]
 }
 
+// Structure renvoyée par GET /api/ventes/stats/
+export interface StatsByAnnee {
+  annee:           number
+  nb_ventes:       number
+  // DRF sérialise DecimalField en string
+  prix_median:     string | null
+  surface_moyenne: string | null
+}
+
+export interface VenteStats {
+  total_ventes:    number
+  prix_median:     string | null
+  surface_moyenne: string | null
+  par_annee:       StatsByAnnee[]
+}
+
 // Paramètres de filtrage acceptés par l'endpoint /api/ventes/
 export interface VenteFilters {
   commune?: string

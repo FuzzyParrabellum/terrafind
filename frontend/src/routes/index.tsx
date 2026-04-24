@@ -46,7 +46,7 @@ function HomePage() {
       <Hero />
       <SearchBar />
       <StatsBar />
-      <div className="flex min-h-screen">
+      <div className="flex flex-1">
         <Sidebar />
         <ResultsList />
       </div>

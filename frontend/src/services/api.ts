@@ -1,4 +1,4 @@
-import type { PaginatedResponse, VenteParcelle, VenteFilters } from '../types/api'
+import type { PaginatedResponse, VenteParcelle, VenteFilters, VenteStats } from '../types/api'
 
 // Le chemin /api est intercepté par le proxy Vite en développement
 // et redirigé vers Django (http://back:8000).
@@ -51,5 +51,19 @@ export const venteService = {
     if (filters.ordering)     params.ordering     = filters.ordering
     if (filters.page)         params.page         = String(filters.page)
     return get<PaginatedResponse<VenteParcelle>>(`${BASE}/ventes/`, params)
+  },
+
+  /**
+   * GET /api/ventes/stats/
+   * Retourne les statistiques agrégées (total, médiane, évolution par année).
+   * Accepte les mêmes filtres que list() pour limiter le périmètre des stats.
+   */
+  stats(filters: VenteFilters = {}): Promise<VenteStats> {
+    const params: Record<string, string> = {}
+    if (filters.commune)     params.commune     = filters.commune
+    if (filters.type_local)  params.type_local  = filters.type_local
+    if (filters.annee_debut) params.annee_debut = String(filters.annee_debut)
+    if (filters.annee_fin)   params.annee_fin   = String(filters.annee_fin)
+    return get<VenteStats>(`${BASE}/ventes/stats/`, params)
   },
 }

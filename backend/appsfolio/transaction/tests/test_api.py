@@ -205,6 +205,93 @@ class TestVenteStatsAPI:
         assert data["surface_moyenne"] is None
         assert data["par_annee"] == []
 
+    # --- valeurs de prix_median et surface_moyenne --------------------------
+
+    def test_stats_prix_median_single_vente(self, client, vente_vannes):
+        # Avec une seule vente, la médiane est égale à la valeur elle-même.
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert float(data["prix_median"]) == pytest.approx(387000, rel=1e-4)
+
+    def test_stats_prix_median_two_ventes(self, client, vente_vannes, vente_lorient):
+        # Médiane de deux valeurs = leur moyenne : (220 000 + 387 000) / 2 = 303 500.
+        # PERCENTILE_CONT(0.5) interpole entre les deux valeurs pour un nombre pair.
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert float(data["prix_median"]) == pytest.approx(303500, rel=1e-4)
+
+    def test_stats_surface_moyenne(self, client, vente_vannes, vente_lorient):
+        # Moyenne des surfaces : (42 + 85) / 2 = 63.5 m².
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert float(data["surface_moyenne"]) == pytest.approx(63.5, rel=1e-4)
+
+    def test_stats_prix_median_not_null_when_data_exists(self, client, vente_vannes):
+        # prix_median ne doit jamais être null quand il y a au moins une vente.
+        data = client.get(reverse("venteparcelle-stats")).json()
+        assert data["prix_median"] is not None
+
+    # --- par_annee : ordre et valeurs ---------------------------------------
+
+    def test_stats_par_annee_ordered_ascending_by_year(
+        self, client, vente_vannes, vente_vannes_2022, vente_vannes_2023
+    ):
+        # Le frontend utilise par_annee.at(-1) pour la dernière année et
+        # par_annee.at(-2) pour calculer l'évolution : l'ordre croissant est critique.
+        data = client.get(reverse("venteparcelle-stats")).json()
+        annees = [entry["annee"] for entry in data["par_annee"]]
+        assert annees == sorted(annees)
+
+    def test_stats_par_annee_nb_ventes_per_year(
+        self, client, vente_vannes, vente_lorient, vente_vannes_2022, vente_vannes_2023
+    ):
+        # 2022 : 1 vente, 2023 : 1 vente, 2024 : 2 ventes (vannes + lorient).
+        data = client.get(reverse("venteparcelle-stats")).json()
+        by_year = {entry["annee"]: entry["nb_ventes"] for entry in data["par_annee"]}
+        assert by_year[2022] == 1
+        assert by_year[2023] == 1
+        assert by_year[2024] == 2
+
+    def test_stats_par_annee_prix_median_per_year(
+        self, client, vente_vannes_2022, vente_vannes_2023
+    ):
+        # Avec une seule vente par année, le prix médian = valeur de la vente.
+        data = client.get(reverse("venteparcelle-stats")).json()
+        by_year = {entry["annee"]: entry["prix_median"] for entry in data["par_annee"]}
+        assert float(by_year[2022]) == pytest.approx(300000, rel=1e-4)
+        assert float(by_year[2023]) == pytest.approx(350000, rel=1e-4)
+
+    # --- filtres sur stats --------------------------------------------------
+
+    def test_stats_filter_by_type_local(
+        self, client, vente_vannes, vente_lorient
+    ):
+        # Filtrer sur Appartement → vente_vannes (387 000 €) seulement.
+        data = client.get(
+            reverse("venteparcelle-stats"), {"type_local": "Appartement"}
+        ).json()
+        assert data["total_ventes"] == 1
+        assert float(data["prix_median"]) == pytest.approx(387000, rel=1e-4)
+
+    def test_stats_filter_by_annee_debut(
+        self, client, vente_vannes, vente_vannes_2022, vente_vannes_2023
+    ):
+        # annee_debut=2023 → ventes de 2023 et 2024 seulement.
+        data = client.get(
+            reverse("venteparcelle-stats"), {"annee_debut": 2023}
+        ).json()
+        assert data["total_ventes"] == 2
+        annees = [entry["annee"] for entry in data["par_annee"]]
+        assert 2022 not in annees
+
+    def test_stats_filter_by_annee_fin(
+        self, client, vente_vannes, vente_vannes_2022, vente_vannes_2023
+    ):
+        # annee_fin=2022 → vente_vannes_2022 seulement.
+        data = client.get(
+            reverse("venteparcelle-stats"), {"annee_fin": 2022}
+        ).json()
+        assert data["total_ventes"] == 1
+        annees = [entry["annee"] for entry in data["par_annee"]]
+        assert all(a <= 2022 for a in annees)
+
 
 # ---------------------------------------------------------------------------
 # Tests des filtres de la liste /api/ventes/
