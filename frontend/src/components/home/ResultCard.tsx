@@ -1,5 +1,5 @@
-import type { VenteParcelle } from '../types/api'
-import { formatDate, formatPrice, formatPricePerSqm, formatRooms, formatSurface } from '../utils/format'
+import type { VenteParcelle } from '../../types/api'
+import { formatDate, formatPrice, formatPricePerSqm, formatRooms, formatSurface } from '../../utils/format'
 
 interface ResultCardProps {
   vente: VenteParcelle

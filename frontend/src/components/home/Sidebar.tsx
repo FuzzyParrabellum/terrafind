@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearch, useNavigate } from '@tanstack/react-router'
-import type { HomeSearch } from '../routes/index'
+import type { HomeSearch } from '../../routes/index'
 
 const ANNEES = [2021, 2022, 2023, 2024, 2025]
 

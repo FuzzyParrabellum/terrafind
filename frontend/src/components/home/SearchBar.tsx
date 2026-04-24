@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearch, useNavigate } from '@tanstack/react-router'
-import type { HomeSearch } from '../routes/index'
+import type { HomeSearch } from '../../routes/index'
 
 // Correspondance label affiché → valeur envoyée à l'API Django.
 // La clé vide '' représente "Tous types" (filtre inactif).

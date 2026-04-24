@@ -1,6 +1,6 @@
 import { type ChangeEvent } from 'react'
 import { useSearch, useNavigate } from '@tanstack/react-router'
-import type { HomeSearch } from '../routes/index'
+import type { HomeSearch } from '../../routes/index'
 
 // Correspondance label affiché → valeur envoyée au paramètre ?ordering= de l'API.
 // Les valeurs avec un "-" préfixe signifient "ordre décroissant" (convention Django REST).

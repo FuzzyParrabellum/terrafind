@@ -1,9 +1,9 @@
-import type { VenteParcelle } from '../types/api'
+import type { VenteParcelle } from '../../types/api'
 import { useSearch } from '@tanstack/react-router'
 
-import { useVentes } from '../hooks/useVentes'
+import { useVentes } from '../../hooks/useVentes'
 import ResultCard from './ResultCard'
-import Spinner from './Spinner'
+import Spinner from '../ui/Spinner'
 import Pagination from './Pagination'
 import SortSelect from './SortSelect'
 

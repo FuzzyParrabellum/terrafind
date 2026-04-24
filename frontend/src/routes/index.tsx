@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Hero from '../components/Hero'
-import SearchBar from '../components/SearchBar'
-import StatsBar from '../components/StatsBar'
-import Sidebar from '../components/Sidebar'
-import ResultsList from '../components/ResultsList'
+import Hero from '../components/home/Hero'
+import SearchBar from '../components/home/SearchBar'
+import StatsBar from '../components/home/StatsBar'
+import Sidebar from '../components/home/Sidebar'
+import ResultsList from '../components/home/ResultsList'
 
 export interface HomeSearch {
   commune:     string | undefined

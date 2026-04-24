@@ -1,4 +1,4 @@
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Case, Count, ExpressionWrapper, F, FloatField, IntegerField, Q, Value, When
 from django.db.models.functions import ExtractYear
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
@@ -85,41 +85,69 @@ class VenteParcelleViewSet(viewsets.ReadOnlyModelViewSet):
         """
         GET /api/ventes/stats/
 
-        Retourne des statistiques agrégées sur les ventes.
+        Retourne des statistiques agrégées sur les ventes, par semestre.
 
         Filtres optionnels :
-          ?commune=56260 → limiter aux ventes d'une commune
+          ?commune=56260   → limiter aux ventes d'une commune
+          ?type_local=...  → limiter à un type de bien
         """
-        # On réutilise get_queryset() pour appliquer les mêmes filtres
-        # (?commune, ?code_postal) sans dupliquer la logique.
         qs = self.get_queryset()
 
+        # Prix au m² — null quand surface absente ou nulle pour éviter la division par zéro.
+        prix_m2_expr = Case(
+            When(
+                surface_bien_principal__isnull=False,
+                surface_bien_principal__gt=0,
+                then=ExpressionWrapper(
+                    F("valeur_fonciere") / F("surface_bien_principal"),
+                    output_field=FloatField(),
+                ),
+            ),
+            default=Value(None),
+            output_field=FloatField(),
+        )
+
+        # Semestre (1 = jan–juin, 2 = juil–déc)
+        semestre_expr = Case(
+            When(date_mutation__month__lte=6, then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        )
+
         # Agrégats globaux ------------------------------------------------
-        global_agg = qs.aggregate(
+        global_agg = qs.annotate(prix_m2=prix_m2_expr).aggregate(
             total_ventes=Count("id"),
             prix_median=Median("valeur_fonciere"),
+            prix_m2_median=Median("prix_m2"),
             surface_moyenne=Avg("surface_bien_principal"),
         )
 
-        # Agrégats par année -----------------------------------------------
-        # ExtractYear annote chaque ligne avec l'année de date_mutation,
-        # puis on group by cette annotation via values("annee").
-        par_annee = (
-            qs.annotate(annee=ExtractYear("date_mutation"))
-            .values("annee")
+        # Agrégats par semestre -------------------------------------------
+        # On annote chaque ligne avec (annee, semestre, prix_m2),
+        # puis on regroupe et on agrège.
+        par_periode = (
+            qs
+            .annotate(
+                annee=ExtractYear("date_mutation"),
+                semestre=semestre_expr,
+                prix_m2=prix_m2_expr,
+            )
+            .values("annee", "semestre")
             .annotate(
                 nb_ventes=Count("id"),
                 prix_median=Median("valeur_fonciere"),
+                prix_m2_median=Median("prix_m2"),
                 surface_moyenne=Avg("surface_bien_principal"),
             )
-            .order_by("annee")
+            .order_by("annee", "semestre")
         )
 
         payload = {
             "total_ventes": global_agg["total_ventes"],
             "prix_median": global_agg["prix_median"],
+            "prix_m2_median": global_agg["prix_m2_median"],
             "surface_moyenne": global_agg["surface_moyenne"],
-            "par_annee": list(par_annee),
+            "par_periode": list(par_periode),
         }
 
         serializer = StatsSerializer(payload)

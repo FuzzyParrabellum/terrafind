@@ -34,19 +34,22 @@ export interface PaginatedResponse<T> {
 }
 
 // Structure renvoyée par GET /api/ventes/stats/
-export interface StatsByAnnee {
+export interface StatsByPeriode {
   annee:           number
+  semestre:        number   // 1 = jan–juin, 2 = juil–déc
   nb_ventes:       number
   // DRF sérialise DecimalField en string
   prix_median:     string | null
-  surface_moyenne: string | null
+  prix_m2_median:  number | null
+  surface_moyenne: number | null
 }
 
 export interface VenteStats {
   total_ventes:    number
   prix_median:     string | null
-  surface_moyenne: string | null
-  par_annee:       StatsByAnnee[]
+  prix_m2_median:  number | null
+  surface_moyenne: number | null
+  par_periode:     StatsByPeriode[]
 }
 
 // Paramètres de filtrage acceptés par l'endpoint /api/ventes/

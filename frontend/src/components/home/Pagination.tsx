@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import type { HomeSearch } from '../routes/index'
+import type { HomeSearch } from '../../routes/index'
 
 interface PaginationProps {
   // Nombre total de résultats renvoyé par l'API (data.count).
