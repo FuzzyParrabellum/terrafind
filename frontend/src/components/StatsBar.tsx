@@ -48,7 +48,7 @@ export default function StatsBar() {
         <p className="text-xl font-medium text-stone-900">
           {isLoading ? placeholder : (data ? data.total_ventes.toLocaleString('fr-FR') : '—')}
         </p>
-        <p className="text-[11px] text-stone-400 mt-0.5">Ventes dans le Morbihan</p>
+        <p className="text-[11px] text-stone-400 mt-0.5">Ventes dans le Morbihan entre 2021 et 2025</p>
       </div>
 
       <div className="px-6 py-4 text-center">
