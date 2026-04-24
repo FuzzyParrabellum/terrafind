@@ -1,0 +1,35 @@
+{
+  "count": 42,
+  "next": "http://localhost:5173/api/ventes/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "public_id": "550e8400-e29b-41d4-a716-446655440001",
+      "commune": { "code_insee": "56260", "nom": "Vannes", "code_departement": "56" },
+      "code_postal": "56000",
+      "date_mutation": "2024-03-12",
+      "nature_mutation": "Vente",
+      "valeur_fonciere": "387000.00",
+      "types_locaux": ["Appartement"],
+      "surface_bien_principal": 42,
+      "surface_totale": 42,
+      "nombre_pieces_principales": 2,
+      "nature_culture": null,
+      "surface_terrain": null
+    },
+    {
+      "public_id": "550e8400-e29b-41d4-a716-446655440002",
+      "commune": { "code_insee": "56121", "nom": "Lorient", "code_departement": "56" },
+      "code_postal": "56100",
+      "date_mutation": "2024-01-15",
+      "nature_mutation": "Vente",
+      "valeur_fonciere": "220000.00",
+      "types_locaux": ["Maison"],
+      "surface_bien_principal": 85,
+      "surface_totale": 85,
+      "nombre_pieces_principales": 4,
+      "nature_culture": null,
+      "surface_terrain": null
+    }
+  ]
+}

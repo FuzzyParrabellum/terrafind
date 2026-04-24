@@ -64,7 +64,7 @@ export default function Pagination({ totalCount, pageSize, currentPage }: Pagina
   const pages = buildPages(current, totalPages)
 
   return (
-    <div className="flex justify-end items-center gap-1 pt-4 pb-2">
+    <div data-cy="pagination" className="flex justify-end items-center gap-1 pt-4 pb-2">
       {/* Bouton "Précédent" */}
       <button
         onClick={() => goTo(current - 1)}

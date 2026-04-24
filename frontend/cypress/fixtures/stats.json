@@ -1,0 +1,10 @@
+{
+  "total_ventes": 8742,
+  "prix_median": "285000.00",
+  "surface_moyenne": "88.50",
+  "par_annee": [
+    { "annee": 2022, "nb_ventes": 2100, "prix_median": "270000.00", "surface_moyenne": "86.00" },
+    { "annee": 2023, "nb_ventes": 2300, "prix_median": "280000.00", "surface_moyenne": "87.50" },
+    { "annee": 2024, "nb_ventes": 1950, "prix_median": "285000.00", "surface_moyenne": "88.50" }
+  ]
+}
